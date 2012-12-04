@@ -37,10 +37,10 @@ charfield_replacers = [
     (r'(\b|_)zip\d*', '"zip_code"'),
     (r'(\b|_)zipcode\d*', '"zip_code"'),
     (r'(\b|_)zip_code\d*', '"zip_code"'),
-    (r'(\b|_)telephone\d*', '"phonenumber"'),
-    (r'(\b|_)phone\d*', '"phonenumber"'),
-    (r'(\b|_)mobile\d*', '"phonenumber"'),
-    (r'(\b|_)tel\d*\b', '"phonenumber"'),
+    (r'(\b|_)telephone\d*', '"phone_number"'),
+    (r'(\b|_)phone\d*', '"phone_number"'),
+    (r'(\b|_)mobile\d*', '"phone_number"'),
+    (r'(\b|_)tel\d*\b', '"phone_number"'),
     (r'(\b|_)state\d*\b', '"state"'),
     (r'(\b|_)address\d*', '"full_address"'),
 ]
@@ -84,7 +84,7 @@ def get_replacer_for_field(field):
 
     return r
 
-attribute_template = "        ('%(attname)s', %(replacer)s),"
+attribute_template = "        ('%(attname)s', %(replacer)s, ''),"
 class_template = """
 class %(modelname)sAnonymizer(Anonymizer):
 
@@ -111,7 +111,7 @@ def create_anonymizer(model):
     for f in fields:
         replacer = get_replacer_for_field(f)
         attributes.append(attribute_template % {'attname': f.attname,
-                                                'replacer': replacer })
+                                                'replacer': replacer})
     return class_template % {'modelname':model.__name__,
                              'attributes': "\n".join(attributes) }
 

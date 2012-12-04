@@ -1,10 +1,16 @@
-from datetime import datetime
+from datetime import datetime as py_datetime
 import decimal
 import random
 
-from faker import data
-from faker import Faker
-from faker.utils import uk_postcode, bothify
+from faker.generators.address import *
+from faker.generators.company import *
+from faker.generators.date import datetime as f_datetime
+from faker.generators.internet import *
+from faker.generators.lorem import *
+from faker.generators.name import *
+from faker.generators.phone_number import *
+from faker.generators.francais import *
+from faker.generators.utils import bothify
 
 from anonymizer import replacers
 
@@ -25,7 +31,7 @@ class DjangoFaker(object):
     Class that provides fake data, using Django specific knowledge to ensure
     acceptable data for Django models.
     """
-    faker = Faker()
+    #faker = Faker()
 
     def __init__(self):
         self.init_values = {}
@@ -37,8 +43,8 @@ class DjangoFaker(object):
         field_vals = set(x[0] for x in field.model._default_manager.values_list(field.name))
         self.init_values[field] = field_vals
 
-    def get_allowed_value(self, source, field):
-        retval = source()
+    def get_allowed_value(self, source, field, vallien=None):
+        retval = source(vallien) if vallien else source()
         if field is None:
             return retval
 
@@ -115,10 +121,10 @@ class DjangoFaker(object):
         years of that date will be returned.
         """
         if val is None:
-            source = lambda: datetime.fromtimestamp(randrange(1, 2100000000))
+            source = lambda: f_datetime(py_datetime.strptime("01/01/1900", "%d/%m/%Y"))
         else:
-            source = lambda: datetime.fromtimestamp(int(val.strftime("%s")) +
-                                                    randrange(-365*24*3600*2, 365*24*3600*2))
+            source = lambda: f_datetime(py_datetime.strptime("01/01/1900", "%d/%m/%Y"),
+                                        val.strftime("%d/%m/%Y"))
         return self.get_allowed_value(source, field)
 
     def date(self, field=None, val=None):
@@ -126,21 +132,11 @@ class DjangoFaker(object):
         Like datetime, but truncated to be a date only
         """
         d = self.datetime(field=field, val=val)
+        
         return d.date()
 
     def decimal(self, field=None, val=None):
         source = lambda: decimal.Decimal(random.randrange(0, 100000))/(10**field.decimal_places)
-        return self.get_allowed_value(source, field)
-
-    def uk_postcode(self, field=None):
-        return self.get_allowed_value(uk_postcode, field)
-
-    def uk_county(self, field=None):
-        source = lambda: random.choice(data.UK_COUNTIES)
-        return self.get_allowed_value(source, field)
-
-    def uk_country(self, field=None):
-        source = lambda: random.choice(data.UK_COUNTRIES)
         return self.get_allowed_value(source, field)
 
     def lorem(self, field=None, val=None):
@@ -154,7 +150,7 @@ class DjangoFaker(object):
                 # Get lorem ipsum of a specific length.
                 collect = ""
                 while len(collect) < length:
-                    collect += self.faker.lorem()
+                    collect += paragraphs()
                 collect = collect[:length]
                 return collect
 
@@ -167,7 +163,7 @@ class DjangoFaker(object):
                     parts[i] = generate(len(p))
                 return "\n".join(parts)
         else:
-            source = self.faker.lorem
+            source = paragraphs
         return self.get_allowed_value(source, field)
 
     def choice(self, field=None):
@@ -184,7 +180,7 @@ class DjangoFaker(object):
     # name
     # email
     # full_address
-    # phonenumber
+    # phone_number
     # street_address
     # city
     # state
@@ -193,11 +189,12 @@ class DjangoFaker(object):
 
     def __getattr__(self, name):
         # we delegate most calls to faker, but add checks
-        source = getattr(self.faker, name)
+        #source = getattr(self.faker, name)
 
         def func(*args, **kwargs):
             field = kwargs.get('field', None)
-            return self.get_allowed_value(source, field)
+            vallien = kwargs.get('vallien', None)
+            return self.get_allowed_value(eval(name), field, vallien)
         return func
 
 
@@ -248,24 +245,28 @@ class Anonymizer(object):
         If it returns False, the object will not be saved
         """
         attributes = self.get_attributes()
-        for attname, replacer in attributes:
+        for attname, replacer, lien in attributes:
             if replacer == "SKIP":
                 continue
-            self.alter_object_attribute(obj, attname, replacer)
+            self.alter_object_attribute(obj, attname, replacer, lien)
 
-    def alter_object_attribute(self, obj, attname, replacer):
+    def alter_object_attribute(self, obj, attname, replacer, lien):
         """
         Alters a single attribute in an object.
         """
         currentval = getattr(obj, attname)
         field = obj._meta.get_field_by_name(attname)[0]
+        currentvallien = getattr(obj, lien) if lien else None
         if isinstance(replacer, str):
             # 'email' is shortcut for: replacers.email
             replacer = getattr(replacers, replacer)
         elif not callable(replacer):
             raise Exception("Expected callable or string to be passed, got %r." % replacer)
 
-        replacement = replacer(self, obj, field, currentval)
+        if currentvallien:
+            replacement = replacer(self, obj, field, currentval, currentvallien)
+        else:
+            replacement = replacer(self, obj, field, currentval)
 
         setattr(obj, attname, replacement)
 
@@ -279,7 +280,7 @@ class Anonymizer(object):
     def validate(self):
         attributes = self.get_attributes()
         model_attrs = set(f.attname for f in self.model._meta.fields)
-        given_attrs = set(name for name,replacer in attributes)
+        given_attrs = set(name for name,replacer,lien in attributes)
         if model_attrs != given_attrs:
             msg = ""
             missing_attrs = model_attrs - given_attrs

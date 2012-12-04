@@ -89,11 +89,10 @@ full_address.__doc__ = """
 Generates a random full address, using newline characters between the lines.
 Resembles a US address
 """
-phonenumber = lambda anon, obj, field, val: anon.faker.phonenumber(field=field)
-phonenumber.__doc__ = """
+phone_number = lambda anon, obj, field, val: anon.faker.phone_number(field=field)
+phone_number.__doc__ = """
 Generates a random US-style phone number
 """
-
 street_address = lambda anon, obj, field, val: anon.faker.street_address(field=field)
 street_address.__doc__ = """
 Generates a random street address - the first line of a full address
@@ -144,4 +143,22 @@ as the original. If the original often takes a standard form (e.g. a single word
 choice = lambda anon, obj, field, val: anon.faker.choice(field=field)
 choice.__doc__ = """
 Randomly chooses one of the choices set on the field.
+"""
+
+fr_phone_number = lambda anon, obj, field, val: anon.faker.fr_phone_number(field=field)
+fr_phone_number.__doc__ = """
+Generates a random FR-style phone number
+"""
+fr_zip_code = lambda anon, obj, field, val: anon.faker.fr_zip_code(field=field)
+fr_zip_code.__doc__ = """
+Returns a randomly generated FR zip code (not necessarily valid, but will look like one).
+"""
+
+fr_nir = lambda anon, obj, field, val: anon.faker.fr_nir(field=field)
+fr_nir.__doc__ = """
+Returns a randomly NIR.
+"""
+fr_nir_cle = lambda anon, obj, field, val, vallien: anon.faker.fr_nir_cle(field=field, vallien=vallien)
+fr_nir_cle.__doc__ = """
+Returns a randomly cle NIR.
 """
