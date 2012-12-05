@@ -43,8 +43,8 @@ class DjangoFaker(object):
         field_vals = set(x[0] for x in field.model._default_manager.values_list(field.name))
         self.init_values[field] = field_vals
 
-    def get_allowed_value(self, source, field, vallien=None):
-        retval = source(vallien) if vallien else source()
+    def get_allowed_value(self, source, field, option=None):
+        retval = source(option) if option else source()
         if field is None:
             return retval
 
@@ -193,8 +193,8 @@ class DjangoFaker(object):
 
         def func(*args, **kwargs):
             field = kwargs.get('field', None)
-            vallien = kwargs.get('vallien', None)
-            return self.get_allowed_value(eval(name), field, vallien)
+            parametre = kwargs.get('parametre', None)
+            return self.get_allowed_value(eval(name), field, parametre)
         return func
 
 
@@ -245,26 +245,51 @@ class Anonymizer(object):
         If it returns False, the object will not be saved
         """
         attributes = self.get_attributes()
-        for attname, replacer, lien in attributes:
+        for attname, replacer, option in attributes:
             if replacer == "SKIP":
                 continue
-            self.alter_object_attribute(obj, attname, replacer, lien)
+            self.alter_object_attribute(obj, attname, replacer, option)
 
-    def alter_object_attribute(self, obj, attname, replacer, lien):
+    def alter_object_attribute(self, obj, attname, replacer, option):
         """
         Alters a single attribute in an object.
         """
         currentval = getattr(obj, attname)
         field = obj._meta.get_field_by_name(attname)[0]
-        currentvallien = getattr(obj, lien) if lien else None
         if isinstance(replacer, str):
             # 'email' is shortcut for: replacers.email
             replacer = getattr(replacers, replacer)
         elif not callable(replacer):
             raise Exception("Expected callable or string to be passed, got %r." % replacer)
 
-        if currentvallien:
-            replacement = replacer(self, obj, field, currentval, currentvallien)
+        if option:
+            # l'option est :
+            #   - un champs              -> parametre = la valeur du champs
+            #   - un formatage           -> parametre = le formatage
+            #   - un formatage,un champs -> parametre = le formatage mixe avec la valeur du champs
+            parametre = ''
+            formatage = ''
+            for opt in option.split(','):
+                try:
+                    # on verifie si l'option est un champs de la table
+                    parametre = getattr(obj, opt)
+                except AttributeError:
+                    # double transformation :
+                    #  - insert la valeur du champs dans le formatage
+                    parametre = opt.format(parametre) if parametre else opt
+
+                    #  - remplace les '!' par les caracteres de currentval
+                    i = 0
+                    while i < len(parametre):
+                        if parametre[i] == '!':
+                            if currentval and i < len(currentval):
+                                formatage += currentval[i]
+                        else:
+                            formatage += parametre[i]
+                        i += 1
+                    parametre = formatage
+
+            replacement = replacer(self, obj, field, currentval, parametre)
         else:
             replacement = replacer(self, obj, field, currentval)
 

@@ -153,12 +153,23 @@ fr_zip_code = lambda anon, obj, field, val: anon.faker.fr_zip_code(field=field)
 fr_zip_code.__doc__ = """
 Returns a randomly generated FR zip code (not necessarily valid, but will look like one).
 """
-
-fr_nir = lambda anon, obj, field, val: anon.faker.fr_nir(field=field)
-fr_nir.__doc__ = """
+fr_street_address = lambda anon, obj, field, val: anon.faker.fr_street_address(field=field)
+fr_street_address.__doc__ = """
+Returns a randomly generated FR zip code (not necessarily valid, but will look like one).
+"""
+fr_ville = lambda anon, obj, field, val: anon.faker.fr_ville(field=field)
+fr_ville.__doc__ = """
 Returns a randomly NIR.
 """
-fr_nir_cle = lambda anon, obj, field, val, vallien: anon.faker.fr_nir_cle(field=field, vallien=vallien)
+fr_formater = lambda anon, obj, field, val, parametre: anon.faker.fr_formater(field=field, parametre=parametre)
+fr_formater.__doc__ = """
+Returns a randomly str formatted.
+"""
+fr_nir_cle = lambda anon, obj, field, val, parametre: anon.faker.fr_nir_cle(field=field, parametre=parametre)
 fr_nir_cle.__doc__ = """
 Returns a randomly cle NIR.
+"""
+fr_identifiant_cle = lambda anon, obj, field, val, parametre: anon.faker.fr_identifiant_cle(field=field, parametre=parametre)
+fr_identifiant_cle.__doc__ = """
+Returns a randomly cle identifiant.
 """
